@@ -419,12 +419,12 @@ def experiment_topologies(X_train, y_train, X_test, y_test):
 # -------------------------------
 def main():
     # Caminho do arquivo
-    filepath = r"C:\Users\Bruno Matos\iCloudDrive\UNIFOR\SEMESTRE 6\Inteligência artificial computacional\AV2\Redes_Neurais_Artificiais\dados\Spiral3d.csv"
+    filepath = r"dados/Spiral3d.csv"
     X, y = load_classification_data(filepath)
     y = convert_labels(y)
     
     # Visualização inicial: gráfico 3D de dispersão
-    plot_3d_scatter(X, y)
+    plot_2d_scatter(X, y)
     
     # Monte Carlo: R=250 rodadas
     (metrics_percep, metrics_mlp,

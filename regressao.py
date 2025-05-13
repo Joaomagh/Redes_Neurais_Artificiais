@@ -323,7 +323,7 @@ def plot_learning_curve(curve_data, labels, title):
 # 4. FUNÇÃO PRINCIPAL (MAIN)
 # ===============================
 def main():
-    filepath = r"C:\Users\Bruno Matos\iCloudDrive\UNIFOR\SEMESTRE 6\Inteligência artificial computacional\AV2\Redes_Neurais_Artificiais\dados\aerogerador.dat"
+    filepath = r"dados/aerogerador.dat"
     X, y = load_data(filepath)
     
     # Normalização dos dados
