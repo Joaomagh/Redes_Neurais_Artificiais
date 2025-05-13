@@ -25,7 +25,7 @@ Com essas escolhas, o modelo conseguiu um MSE **baixo e estável**, indicando qu
 ## 3. Perceptron de Múltiplas Camadas (MLP)  
 O modelo MLP é uma rede **não linear**, capaz de capturar padrões complexos nos dados. Seus hiperparâmetros foram ajustados para **garantir um equilíbrio entre aprendizado eficiente e generalização**.
 
-### Hiperparâmetros do MLP e justificativa:
+### Hiperparâmetros do MLP e justificativa
 - **Arquitetura da Rede (`hidden_layers`)**  
   Foram testadas diferentes topologias:
   - **Subdimensionado (`hidden_layers=[2]`)** → Poucos neurônios, levando a **underfitting**.  
