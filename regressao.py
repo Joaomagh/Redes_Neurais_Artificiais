@@ -1,34 +1,49 @@
-#!/usr/bin/env python
-# regressao.py
-
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import sys
 
 # ===============================
-# Implementação do ADALINE
+# FUNÇÃO DE NORMALIZAÇÃO DOS DADOS
+# ===============================
+def normalize_data(X, y):
+    """
+    Normaliza os dados:
+       X_norm = (X - média) / desvio-padrão (por coluna)
+       y_norm = (y - média) / desvio-padrão
+    """
+    X_mean = np.mean(X, axis=0)
+    X_std = np.std(X, axis=0)
+    X_norm = (X - X_mean) / X_std
+
+    y_mean = np.mean(y)
+    y_std = np.std(y)
+    y_norm = (y - y_mean) / y_std
+
+    return X_norm, y_norm
+
+# ===============================
+# 1. IMPLEMENTAÇÃO DO ADALINE
 # ===============================
 class Adaline:
-    def __init__(self, eta=0.001, max_epochs=100, epsilon=1e-5, random_state=1):
+    def __init__(self, eta=0.01, max_epochs=100, epsilon=1e-4, random_state=1):
         """
-        Parâmetros:
-          eta         : Taxa de aprendizagem.
-          max_epochs  : Número máximo de épocas.
-          epsilon     : Critério de convergência (diferença entre EQMs consecutivos).
-          random_state: Semente para a inicialização (quando aplicável).
+        Configuração do ADALINE:
+         - Taxa de aprendizagem η = 0.01 (otimizado com dados normalizados).
+         - Máximo de épocas = 100.
+         - Critério de parada ε = 1e-4.
+         - Inicializa os pesos (com bias) com zeros.
         """
         self.eta = eta
         self.max_epochs = max_epochs
         self.epsilon = epsilon
         self.random_state = random_state
-        self.weights = None  # vetor de pesos (incluirá o bias)
+        self.weights = None
 
     def _eqm(self, X, y):
         """
-        Calcula o Erro Quadrático Médio (EQM) conforme o Algoritmo 4.
-        Para cada amostra, calcula u = w^T * x e acumula (d - u)².
-        Ao final, divide a soma por (2*N).
+        Calcula o Erro Quadrático Médio (EQM):
+            EQM = (1/(2N)) * Σ (d - u)²
         """
         N = X.shape[0]
         eqm = 0.0
@@ -39,23 +54,17 @@ class Adaline:
 
     def fit(self, X, y):
         """
-        Treinamento do ADALINE conforme Algoritmo 3:
-          - Adiciona a coluna de bias à matriz X.
-          - Inicializa os pesos (aqui, com zeros).
-          - Para cada época, percorre todas as amostras e atualiza os pesos.
-          - O treinamento para quando a variação do EQM é menor que epsilon ou
-            atinge o número máximo de épocas.
+        Treinamento do ADALINE (seguindo o pseudocódigo):
+          - Adiciona um bias (coluna de 1) à matriz X.
+          - Atualiza os pesos para cada amostra e interrompe se |EQM_atual – EQM_anterior| ≤ ε
+            ou se atingir o número máximo de épocas.
         """
         N = X.shape[0]
-        # Adiciona coluna de bias (utiliza 1 para facilitar o cálculo)
         X_bias = np.hstack((np.ones((N, 1)), X))
-        
-        # Inicializa os pesos
+
         self.weights = np.zeros(X_bias.shape[1])
-        
         epoch = 0
         eqm_prev = self._eqm(X_bias, y)
-        
         while epoch < self.max_epochs:
             for i in range(N):
                 u = np.dot(self.weights, X_bias[i])
@@ -69,30 +78,26 @@ class Adaline:
 
     def predict(self, X):
         """
-        Fase de teste (Algoritmo 5):
-          - Adiciona a coluna de bias e retorna u = w^T * x para cada amostra.
-          - Em classificação, poder-se-ia aplicar uma função de sinal; aqui, retorna
-            o valor contínuo para regressão.
+        Fase de teste: retorna u = wᵀx (com bias).
         """
         N = X.shape[0]
         X_bias = np.hstack((np.ones((N, 1)), X))
         return np.dot(X_bias, self.weights)
 
 # ===============================
-# Implementação da MLP (do zero)
+# 2. IMPLEMENTAÇÃO DO MLP (DO ZERO)
 # ===============================
 class SimpleMLP:
     def __init__(self, input_dim, hidden_layers, output_dim=1,
-                 eta=0.01, max_epochs=1000, epsilon=1e-5, random_state=None):
+                 eta=0.05, max_epochs=200, epsilon=1e-4,
+                 activation_name="tanh", random_state=None):
         """
-        Parâmetros:
-          input_dim    : Dimensão da entrada (p)
-          hidden_layers: Lista com a quantidade de neurônios em cada camada oculta (ex.: [10])
-          output_dim   : Quantidade de neurônios na camada de saída (para regressão, geralmente 1)
-          eta          : Taxa de aprendizagem.
-          max_epochs   : Número máximo de épocas.
-          epsilon      : Critério de parada com base no EQM.
-          random_state : Semente para reprodutibilidade.
+        Configuração do MLP:
+         - input_dim: dimensão da entrada (p).
+         - hidden_layers: lista com número de neurônios em cada camada oculta (ex.: [10]).
+         - output_dim: número de neurônios na camada de saída (para regressão, 1).
+         - Taxa de aprendizagem η = 0.05, max_epochs = 200, ε = 1e-4.
+         - activation_name escolhida entre "tanh" ou "sigmoid" (aqui "tanh").
         """
         self.input_dim = input_dim
         self.hidden_layers = hidden_layers
@@ -100,28 +105,24 @@ class SimpleMLP:
         self.eta = eta
         self.max_epochs = max_epochs
         self.epsilon = epsilon
+        self.activation_name = activation_name
         self.random_state = random_state
 
-        # Total de camadas (camadas ocultas + camada de saída)
         self.L_total = len(hidden_layers) + 1  
-        self.weights = []  # Lista de matrizes de pesos para cada camada
-
+        self.weights = []
         self._initialize_weights()
 
     def _initialize_weights(self):
         """
-        Conforme o Algoritmo 6, cria L+1 matrizes de pesos, inicializadas com valores
-        aleatórios pequenos no intervalo [-0.5, 0.5]. Cada matriz inclui os pesos do bias.
+        Inicializa as matrizes de peso com valores aleatórios no intervalo [-0.5, 0.5],
+        acompanhando as dimensões definidas e incluindo o bias.
         """
         rng = np.random.RandomState(self.random_state)
-        # Primeira camada: entrada + bias
         W0 = rng.uniform(-0.5, 0.5, (self.hidden_layers[0], self.input_dim + 1))
         self.weights.append(W0)
-        # Camadas ocultas intermediárias (se houver)
         for i in range(1, len(self.hidden_layers)):
             Wi = rng.uniform(-0.5, 0.5, (self.hidden_layers[i], self.hidden_layers[i-1] + 1))
             self.weights.append(Wi)
-        # Camada de saída
         if len(self.hidden_layers) > 0:
             input_to_output = self.hidden_layers[-1] + 1
         else:
@@ -131,47 +132,47 @@ class SimpleMLP:
 
     def activation(self, z, layer):
         """
-        Função de ativação:
-          - Para camadas ocultas (layer < último índice): tanh.
-          - Para a camada de saída: ativação linear (para regressão).
+        Retorna a ativação:
+         - Se activation_name == "tanh": usa np.tanh(z).
+         - Se "sigmoid": 1 / (1 + exp(-z)).
         """
-        if layer < len(self.weights) - 1:
+        if self.activation_name == "tanh":
             return np.tanh(z)
+        elif self.activation_name == "sigmoid":
+            return 1.0 / (1.0 + np.exp(-z))
         else:
-            return z
+            return z  # linear se não for especificado
 
     def activation_derivative(self, z, layer):
         """
         Derivada da função de ativação:
-          - Para tanh: 1 - tanh(z)^2.
-          - Para a camada de saída (linear): 1.
+         - Para "tanh": 1 - tanh(z)².
+         - Para "sigmoid": sigma(z) * (1 - sigma(z)).
         """
-        if layer < len(self.weights) - 1:
+        if self.activation_name == "tanh":
             return 1.0 - np.tanh(z)**2
+        elif self.activation_name == "sigmoid":
+            sig = 1.0 / (1.0 + np.exp(-z))
+            return sig * (1 - sig)
         else:
             return np.ones_like(z)
 
     def forward(self, x):
         """
-        Propagação forward conforme o Algoritmo 8:
-          - Adiciona o bias (–1) à amostra.
-          - Propaga a entrada por todas as camadas, salvando os valores pré-ativação (i)
-            e as ativações (y).
+        Propagação forward: insere o bias (-1) na entrada e propaga por todas as camadas,
+        guardando os valores pré-ativação (i_list) e as ativações (y_list).
         """
-        self.i_list = []  # lista dos valores pré-ativação
-        self.y_list = []  # lista dos valores de ativação
+        self.i_list = []
+        self.y_list = []
 
-        # Primeira camada
         x_bias = np.concatenate(([-1], x))
         i0 = np.dot(self.weights[0], x_bias)
         self.i_list.append(i0)
         y0 = self.activation(i0, 0)
         self.y_list.append(y0)
 
-        # Camadas seguintes
         for j in range(1, len(self.weights)):
             y_prev = self.y_list[j-1]
-            # Adiciona o bias à saída da camada anterior
             y_bias = np.concatenate(([-1], y_prev))
             i_j = np.dot(self.weights[j], y_bias)
             self.i_list.append(i_j)
@@ -181,29 +182,22 @@ class SimpleMLP:
 
     def backward(self, x, d):
         """
-        Backpropagation conforme o Algoritmo 9:
-          - Calcula os deltas (δ) para cada camada (da camada de saída para as ocultas)
-          - Atualiza os pesos usando a regra: W[j] ← W[j] + η * (δ[j] ⊗ (entrada da camada)).
+        Backpropagation: calcula os deltas (δ) e atualiza os pesos.
         """
-        L = len(self.weights) - 1  # índice da camada de saída
-        delta = [None] * (L + 1)
-        # Camada de saída:
+        L = len(self.weights) - 1
+        delta = [None]*(L+1)
+
         deriv = self.activation_derivative(self.i_list[L], L)
         delta[L] = deriv * (d - self.y_list[L])
-        
-        # Camadas ocultas (retropropagação)
+
         for j in range(L-1, -1, -1):
-            # Remove o peso do bias da camada seguinte
             W_next = self.weights[j+1]
             Wb = W_next[:, 1:]
             deriv_current = self.activation_derivative(self.i_list[j], j)
             delta[j] = deriv_current * np.dot(Wb.T, delta[j+1])
         
-        # Atualização dos pesos
-        # Para a camada 0:
         x_bias = np.concatenate(([-1], x))
         self.weights[0] += self.eta * np.outer(delta[0], x_bias)
-        # Para as demais camadas:
         for j in range(1, len(self.weights)):
             y_prev = self.y_list[j-1]
             y_bias = np.concatenate(([-1], y_prev))
@@ -211,22 +205,20 @@ class SimpleMLP:
 
     def train(self, X, Y):
         """
-        Treinamento da rede MLP conforme os Algoritmos 7 e 10:
-          - Em cada época, para cada amostra, realiza a propagação forward, calcula o erro
-            e aplica o backpropagation.
-          - O EQM é calculado por época; o treinamento para quando o EQM for inferior a epsilon ou
-            quando o número máximo de épocas for atingido.
-          - A curva de aprendizado (EQM por época) é salva em self.loss_curve.
+        Treinamento do MLP:
+         - Para cada época, para cada amostra, realiza forward, backpropagation e acumula o EQM.
+         - O treinamento para quando o EQM < ε ou quando atinge max_epochs.
+         - Armazena a curva de aprendizado em self.loss_curve.
         """
         N = X.shape[0]
         epoch = 0
-        EQM = 1.0  # valor inicial arbitrário
+        EQM = 1.0
         self.loss_curve = []
         while EQM > self.epsilon and epoch < self.max_epochs:
             soma_erros = 0.0
             for i in range(N):
-                x_sample = X[i]         # amostra com dimensão (input_dim,)
-                d_sample = Y[i]         # saída desejada (para regressão)
+                x_sample = X[i]
+                d_sample = Y[i]
                 output = self.forward(x_sample)
                 erro_sample = d_sample - output
                 soma_erros += np.sum(erro_sample**2)
@@ -238,8 +230,7 @@ class SimpleMLP:
 
     def predict(self, X):
         """
-        Fase de teste (Algoritmo 11):
-          - Para cada amostra, realiza a propagação forward e retorna o valor de saída.
+        Para cada amostra em X, realiza a propagação forward e retorna a previsão.
         """
         outputs = []
         for i in range(X.shape[0]):
@@ -248,13 +239,13 @@ class SimpleMLP:
         return np.array(outputs)
 
 # ===============================
-# Funções de apoio
+# 3. FUNÇÕES AUXILIARES
 # ===============================
 def load_data(filepath):
     """
-    Lê o arquivo de dados e organiza as variáveis:
-      - X: Velocidade do vento (vetor coluna).
-      - y: Potência gerada (vetor).
+    Lê o arquivo e organiza as variáveis:
+         X: velocidade do vento (vetor coluna)
+         y: potência gerada (vetor)
     """
     data = np.loadtxt(filepath)
     X = data[:, 0].reshape(-1, 1)
@@ -263,29 +254,26 @@ def load_data(filepath):
 
 def initial_scatter_plot(X, y):
     """
-    Exibe um gráfico de dispersão usando seaborn/matplotlib.
+    Gráfico de dispersão com seaborn/matplotlib.
     """
     sns.set_theme(style="whitegrid")
     plt.figure(figsize=(8, 6))
     plt.scatter(X, y, color='blue', edgecolor='k', alpha=0.7)
-    plt.xlabel("Velocidade do Vento")
-    plt.ylabel("Potência Gerada")
+    plt.xlabel("Velocidade do Vento (normalizada)")
+    plt.ylabel("Potência Gerada (normalizada)")
     plt.title("Relação: Velocidade do Vento vs Potência Gerada")
     plt.show()
 
 def compute_mse(y_true, y_pred):
     """
-    Calcula o Erro Quadrático Médio (MSE).
+    Calcula o MSE.
     """
     return np.mean((y_true - y_pred) ** 2)
 
 def monte_carlo_simulation(X, y, R=250):
     """
-    Realiza R simulações Monte Carlo:
-      - Em cada iteração, divide os dados em 80% treino e 20% teste,
-        treina os modelos ADALINE e MLP e computa o MSE.
-      - Exibe o progresso (%) em cada iteração.
-    Retorna duas listas de MSE para cada modelo.
+    Realiza R simulações Monte Carlo, com divisão 80% treino, 20% teste.
+    Exibe a porcentagem de progresso e retorna as listas dos MSEs para ADALINE e MLP.
     """
     n_samples = X.shape[0]
     mse_adaline_list = []
@@ -299,23 +287,22 @@ def monte_carlo_simulation(X, y, R=250):
         X_train, X_test = X[train_idx], X[test_idx]
         y_train, y_test = y[train_idx], y[test_idx]
         
-        # Treinamento do ADALINE
-        adaline = Adaline(eta=0.0001, max_epochs=200, epsilon=1e-5, random_state=r)
+        # ADALINE otimizado
+        adaline = Adaline(eta=0.01, max_epochs=100, epsilon=1e-4, random_state=r)
         adaline.fit(X_train, y_train)
         y_pred_adaline = adaline.predict(X_test)
         mse_adaline = compute_mse(y_test, y_pred_adaline)
         mse_adaline_list.append(mse_adaline)
         
-        # Treinamento do MLP com topologia: 1 camada oculta com 10 neurônios
+        # MLP otimizado
         mlp = SimpleMLP(input_dim=1, hidden_layers=[10], output_dim=1,
-                        eta=0.01, max_epochs=300, epsilon=1e-5, random_state=r)
+                        eta=0.05, max_epochs=200, epsilon=1e-4,
+                        activation_name="tanh", random_state=r)
         mlp.train(X_train, y_train)
-        y_pred_mlp = mlp.predict(X_test)
-        y_pred_mlp = np.array(y_pred_mlp).squeeze()  # Ajusta a forma para 1D
+        y_pred_mlp = mlp.predict(X_test).squeeze()
         mse_mlp = compute_mse(y_test, y_pred_mlp)
         mse_mlp_list.append(mse_mlp)
         
-        # Exibe o progresso (atualiza a mesma linha)
         progress = ((r + 1) / R) * 100.0
         sys.stdout.write(f"\rProgresso Monte Carlo: {progress:5.1f}%")
         sys.stdout.flush()
@@ -324,7 +311,7 @@ def monte_carlo_simulation(X, y, R=250):
 
 def print_statistics(mse_list):
     """
-    Retorna a média, desvio-padrão, maior e menor valor dos MSEs.
+    Retorna média, desvio, maior e menor valor dos MSEs.
     """
     mean_val = np.mean(mse_list)
     std_val = np.std(mse_list)
@@ -339,33 +326,31 @@ def plot_learning_curve(mlp):
     plt.figure(figsize=(8, 6))
     plt.plot(mlp.loss_curve, marker='o', linestyle='-', color='b')
     plt.xlabel("Épocas")
-    plt.ylabel("EQM (Erro Quadrático Médio)")
+    plt.ylabel("EQM")
     plt.title("Curva de Aprendizado do MLP")
     plt.grid(True)
     plt.show()
 
 # ===============================
-# Função principal (main)
+# 4. FUNÇÃO PRINCIPAL (MAIN)
 # ===============================
 def main():
-    # Caminho do arquivo de dados
     filepath = r"C:\Users\Bruno Matos\iCloudDrive\UNIFOR\SEMESTRE 6\Inteligência artificial computacional\AV2\Redes_Neurais_Artificiais\dados\aerogerador.dat"
-    
-    # Carregar os dados
     X, y = load_data(filepath)
     
-    # Exibe o gráfico de dispersão inicial
-    initial_scatter_plot(X, y)
+    # Normalização dos dados
+    X_norm, y_norm = normalize_data(X, y)
     
-    # Realiza a validação Monte Carlo (R = 250)
+    # Exibe o gráfico de dispersão dos dados normalizados
+    initial_scatter_plot(X_norm, y_norm)
+    
+    # Monte Carlo (R = 250)
     R = 250
-    mse_adaline_list, mse_mlp_list = monte_carlo_simulation(X, y, R=R)
+    mse_adaline_list, mse_mlp_list = monte_carlo_simulation(X_norm, y_norm, R=R)
     
-    # Calcula estatísticas dos MSEs para cada modelo
     adaline_stats = print_statistics(mse_adaline_list)
     mlp_stats = print_statistics(mse_mlp_list)
     
-    # Imprime os resultados em formato tabular no console
     print("{:<40} {:>10} {:>15} {:>15} {:>15}".format("Modelo", "Média", "Desvio-Padrão", "Maior Valor", "Menor Valor"))
     print("-" * 90)
     print("{:<40} {:10.4f} {:15.4f} {:15.4f} {:15.4f}".format("ADALINE",
@@ -379,15 +364,16 @@ def main():
                                                               mlp_stats[2],
                                                               mlp_stats[3]))
     
-    # Exemplo: Treinamento fixo do MLP para exibir a curva de aprendizado
+    # Exemplo para exibir a curva de aprendizado do MLP com divisão fixa (random_state=42)
     np.random.seed(42)
-    indices = np.random.permutation(X.shape[0])
-    split = int(0.8 * X.shape[0])
+    indices = np.random.permutation(X_norm.shape[0])
+    split = int(0.8 * X_norm.shape[0])
     train_idx = indices[:split]
-    X_train, y_train = X[train_idx], y[train_idx]
+    X_train, y_train = X_norm[train_idx], y_norm[train_idx]
     
     mlp_example = SimpleMLP(input_dim=1, hidden_layers=[10], output_dim=1,
-                            eta=0.01, max_epochs=300, epsilon=1e-5, random_state=42)
+                            eta=0.05, max_epochs=200, epsilon=1e-4,
+                            activation_name="tanh", random_state=42)
     mlp_example.train(X_train, y_train)
     plot_learning_curve(mlp_example)
 
