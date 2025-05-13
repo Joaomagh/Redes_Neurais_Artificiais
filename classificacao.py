@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import sys
-from mpl_toolkits.mplot3d import Axes3D  # para plotagem 3D
 
 # -------------------------------
 # FUNÇÕES AUXILIARES PARA DADOS E MÉTRICAS
@@ -28,20 +27,19 @@ def convert_labels(y):
         return np.where(y == 0, -1, 1)
     return y
 
-def plot_3d_scatter(X, y):
+def plot_2d_scatter(X, y):
     """
-    Plota um gráfico de dispersão 3D dos dados com cores de acordo com a classe.
+    Plota um gráfico de dispersão 2D dos dados utilizando Feature 1 e Feature 2,
+    colorindo conforme a classe.
     """
-    fig = plt.figure(figsize=(8,6))
-    ax = fig.add_subplot(111, projection='3d')
-    # Converter y para string para colorir conforme classe
-    scatter = ax.scatter(X[:,0], X[:,1], X[:,2], c=y, cmap='coolwarm', edgecolor='k', alpha=0.7)
-    ax.set_xlabel("Feature 1")
-    ax.set_ylabel("Feature 2")
-    ax.set_zlabel("Feature 3")
-    ax.set_title("Gráfico 3D de Dispersão")
-    plt.colorbar(scatter, label="Classe")
+    plt.figure(figsize=(8, 6))
+    sns.scatterplot(x=X[:, 0], y=X[:, 1], hue=y, palette="coolwarm", edgecolor='k', alpha=0.7)
+    plt.xlabel("Feature 1")
+    plt.ylabel("Feature 2")
+    plt.title("Gráfico de Dispersão 2D")
+    plt.legend(title="Classe")
     plt.show()
+
 
 def compute_confusion_matrix(y_true, y_pred):
     """
