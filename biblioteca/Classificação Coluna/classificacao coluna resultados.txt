@@ -1,0 +1,26 @@
+Progresso Monte Carlo: 100.0%
+
+ADALINE:
+Métrica        Média     Std     Máx     Mín
+Acc           0.8161  0.0516  0.9516  0.6774
+Sens          0.7665  0.0620  0.9158  0.6079
+Spec          0.9048  0.0281  0.9778  0.8278
+
+MLP:
+Métrica        Média     Std     Máx     Mín
+Acc           0.8258  0.0446  0.9355  0.7097
+Sens          0.7845  0.0549  0.9169  0.6199
+Spec          0.9172  0.0229  0.9710  0.8555
+
+→ ADALINE melhor: Acurácia=0.9516
+
+→ ADALINE pior: Acurácia=0.6774
+
+→ MLP melhor: Acurácia=0.9355
+
+→ MLP pior: Acurácia=0.7097
+
+Underfitting MLP: Acurácia=0.7258, Sensibilidade=0.6377, Especificidade=0.8635
+
+Overfitting MLP: Acurácia=0.8387, Sensibilidade=0.8364, Especificidade=0.9258
+PS C:\Users\Bruno Matos\iCloudDrive\UNIFOR\SEMESTRE 6\Inteligência artificial computacional\AV2\Redes_Neurais_Artificiais> 
