@@ -1,11 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import sys
 
-# -------------------------------
-# FUNÇÕES AUXILIARES PARA DADOS E MÉTRICAS
-# -------------------------------
+
 def load_classification_data(filepath):
     """
     Lê o arquivo "Spiral3d.csv" e organiza:
@@ -66,9 +63,7 @@ def compute_classification_metrics(y_true, y_pred):
     specificity = TN / (TN + FP) if (TN + FP) != 0 else 0
     return accuracy, sensitivity, specificity, cm
 
-# -------------------------------
-# CLASSE PERCEPTRON SIMPLES (CLASSIFICAÇÃO)
-# -------------------------------
+
 class PerceptronSimple:
     def __init__(self, eta=0.1, max_epochs=100, random_state=None):
         """
@@ -86,8 +81,8 @@ class PerceptronSimple:
         self.eta = eta
         self.max_epochs = max_epochs
         self.random_state = random_state
-        self.weights = None      # Vetor de pesos (incluindo o bias)
-        self.errors_curve = []   # Armazena o número de atualizações (erros) por época
+        self.weights = None      
+        self.errors_curve = []   
 
     def net_input(self, x):
         """Calcula a entrada líquida: u = w^T * x (incluindo o bias)"""
@@ -95,7 +90,7 @@ class PerceptronSimple:
 
     def predict(self, X):
         """Aplica a função sinal em u. Retorna 1 se u >= 0; do contrário, -1."""
-        # Para uma matriz de amostras:
+      
         return np.where(np.dot(X, self.weights[1:]) + self.weights[0] >= 0, 1, -1)
 
     def fit(self, X, y):
@@ -114,21 +109,21 @@ class PerceptronSimple:
         O laço termina quando uma época inteira não gera nenhuma atualização.
         """
         n_samples, n_features = X.shape
-        # Inicializa os pesos. Usamos zeros aqui; também poderia ser aleatório.
+     
         self.weights = np.zeros(n_features + 1)
         epoch = 0
         
-        # Inicia com o critério ERRO "EXISTENTE"
+ 
         error_exists = True
 
         while error_exists and epoch < self.max_epochs:
             error_exists = False
-            errors_epoch = 0  # Contador de erros na época corrente
+            errors_epoch = 0  
             for xi, target in zip(X, y):
                 u = self.net_input(xi)
-                # Função sinal: se u >= 0, então 1; caso contrário, -1.
+                
                 prediction = 1 if u >= 0 else -1
-                # Se a previsão estiver errada, atualiza os pesos
+               
                 if target != prediction:
                     update = self.eta * (target - prediction)
                     self.weights[1:] += update * xi
@@ -140,9 +135,7 @@ class PerceptronSimple:
         return self
 
 
-# -------------------------------
-# CLASSE MLP SIMPLES (CLASSIFICAÇÃO)
-# -------------------------------
+
 class SimpleMLP:
     def __init__(self, input_dim, hidden_layers, output_dim=1,
                  eta=0.1, max_epochs=200, epsilon=1e-4, activation_name="tanh",
@@ -190,7 +183,7 @@ class SimpleMLP:
         elif self.activation_name == "sigmoid":
             return 1.0 / (1.0 + np.exp(-z))
         else:
-            return z  # linear
+            return z 
     
     def activation_derivative(self, z):
         if self.activation_name == "tanh":
@@ -205,7 +198,7 @@ class SimpleMLP:
         self.i_list = []
         self.y_list = []
         
-        # Primeira camada: adicione bias -1
+
         x_bias = np.concatenate(([-1], x))
         i0 = np.dot(self.weights[0], x_bias)
         self.i_list.append(i0)
@@ -225,7 +218,7 @@ class SimpleMLP:
         L = len(self.weights) - 1
         delta = [None] * (L + 1)
         
-        # Cálculo para a camada de saída
+
         delta[L] = self.activation_derivative(self.i_list[L]) * (d - self.y_list[L])
         for j in range(L-1, -1, -1):
             W_next = self.weights[j+1]
@@ -263,14 +256,12 @@ class SimpleMLP:
         for i in range(X.shape[0]):
             x_sample = X[i]
             outputs.append(self.forward(x_sample))
-        # Saída contínua; para classificação, use threshold=0:
+
         outputs = np.array(outputs).squeeze()
         preds = np.where(outputs >= 0, 1, -1)
         return preds
 
-# -------------------------------
-# FUNÇÃO PARA MONTE CARLO NA CLASSIFICAÇÃO
-# -------------------------------
+
 def monte_carlo_classification(X, y, R=250):
     """
     Executa R rodadas de validação Monte Carlo:
@@ -282,11 +273,11 @@ def monte_carlo_classification(X, y, R=250):
     """
     n_samples = X.shape[0]
     
-    # listas para métricas (cada item: (accuracy, sensitivity, specificity)).
+
     metrics_percep = []
     metrics_mlp = []
     
-    # para guardar as curvas de aprendizado de melhor e pior rodada
+
     best_percep = {"acc": -1, "index": None, "cm": None, "curve": None, "y_test": None, "y_pred": None}
     worst_percep = {"acc": 2, "index": None, "cm": None, "curve": None, "y_test": None, "y_pred": None}
     
@@ -301,7 +292,7 @@ def monte_carlo_classification(X, y, R=250):
         X_train, X_test = X[train_idx], X[test_idx]
         y_train, y_test = y[train_idx], y[test_idx]
         
-        # Perceptron Simples
+
         percep = PerceptronSimple(eta=0.1, max_epochs=100, random_state=r)
         percep.fit(X_train, y_train)
         y_pred_percep = percep.predict(X_test)
@@ -323,7 +314,7 @@ def monte_carlo_classification(X, y, R=250):
             worst_percep["y_test"] = y_test.copy()
             worst_percep["y_pred"] = y_pred_percep.copy()
         
-        # MLP com topologia padrão: 1 camada oculta com 10 neurônios
+ 
         mlp = SimpleMLP(input_dim=3, hidden_layers=[10], output_dim=1,
                         eta=0.1, max_epochs=200, epsilon=1e-4,
                         activation_name="tanh", random_state=r)
@@ -348,14 +339,10 @@ def monte_carlo_classification(X, y, R=250):
             worst_mlp["y_pred"] = y_pred_mlp.copy()
             
         progress = ((r+1)/R)*100.0
-        sys.stdout.write(f"\rMonte Carlo Progress: {progress:5.1f}%")
-        sys.stdout.flush()
-    sys.stdout.write("\n")
+
     return metrics_percep, metrics_mlp, best_percep, worst_percep, best_mlp, worst_mlp
 
-# -------------------------------
-# FUNÇÃO PARA PLOTAR CONTOUR DA MATRIZ DE CONFUSÃO
-# -------------------------------
+
 def plot_confusion_matrix(cm, title="Matriz de Confusão"):
     plt.figure(figsize=(5,4))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
@@ -378,9 +365,7 @@ def plot_learning_curve_single(curve, title="Curva de Aprendizado"):
     plt.grid(True)
     plt.show()
 
-# -------------------------------
-# FUNÇÃO PARA EXPERIMENTOS DE TOPOLOGIAS (UNDERFITTING e OVERFITTING)
-# -------------------------------
+
 def experiment_topologies(X_train, y_train, X_test, y_test):
     """
     Treina duas MLP com topologias diferentes:
@@ -388,7 +373,7 @@ def experiment_topologies(X_train, y_train, X_test, y_test):
       (b) MLP Superdimensionada (overfitting): 2 camadas ocultas com 50 neurônios cada.
     Calcula as métricas e plota as curvas de aprendizado e a matriz de confusão.
     """
-    # MLP subdimensionada
+
     mlp_under = SimpleMLP(input_dim=3, hidden_layers=[1], output_dim=1,
                            eta=0.1, max_epochs=200, epsilon=1e-4,
                            activation_name="tanh", random_state=42)
@@ -396,7 +381,7 @@ def experiment_topologies(X_train, y_train, X_test, y_test):
     y_pred_under = mlp_under.predict(X_test)
     acc_under, sens_under, spec_under, cm_under = compute_classification_metrics(y_test, y_pred_under)
     
-    # MLP superdimensionada
+    
     mlp_over = SimpleMLP(input_dim=3, hidden_layers=[50, 50], output_dim=1,
                           eta=0.1, max_epochs=200, epsilon=1e-4,
                           activation_name="tanh", random_state=42)
@@ -414,25 +399,22 @@ def experiment_topologies(X_train, y_train, X_test, y_test):
     plot_confusion_matrix(cm_over, title="Matriz de Confusão - MLP Superdimensionada")
     plot_learning_curve_single(mlp_over.loss_curve, title="Curva de Aprendizado - MLP Superdimensionada")
 
-# -------------------------------
-# FUNÇÃO PRINCIPAL (MAIN)
-# -------------------------------
+
 def main():
-    # Caminho do arquivo
+
     filepath = r"dados/Spiral3d.csv"
     X, y = load_classification_data(filepath)
     y = convert_labels(y)
-    
-    # Visualização inicial: gráfico 3D de dispersão
+
     plot_2d_scatter(X, y)
     
-    # Monte Carlo: R=250 rodadas
+   
     (metrics_percep, metrics_mlp,
      best_percep, worst_percep,
      best_mlp, worst_mlp) = monte_carlo_classification(X, y, R=250)
     
-    # Resumo statístico – separar métricas para cada modelo
-    metrics_percep = np.array(metrics_percep)   # colunas: acurácia, sensibilidade, especificidade
+    
+    metrics_percep = np.array(metrics_percep)   
     metrics_mlp = np.array(metrics_mlp)
     
     def print_summary(model_name, metrics):
@@ -450,7 +432,7 @@ def main():
     print_summary("Perceptron Simples", metrics_percep)
     print_summary("MLP", metrics_mlp)
     
-    # Análise das melhores e piores rodadas:
+    
     print("\n--- Análise das Rodadas (Perceptron Simples) ---")
     print(f"Melhor rodada: {best_percep['index']} com acurácia = {best_percep['acc']:.4f}")
     plot_confusion_matrix(best_percep["cm"], title="Matriz de Confusão - Melhor % (Perceptron)")
@@ -469,8 +451,7 @@ def main():
     plot_confusion_matrix(worst_mlp["cm"], title="Matriz de Confusão - Pior % (MLP)")
     plot_learning_curve_single(worst_mlp["curve"], title="Curva de Aprendizado - Pior % (MLP)")
     
-    # Experimento complementar para MLP: Underfitting vs Overfitting
-    # Nesta parte usamos uma divisão fixa para treinar e testar.
+  
     np.random.seed(42)
     indices = np.random.permutation(X.shape[0])
     split = int(0.8 * X.shape[0])

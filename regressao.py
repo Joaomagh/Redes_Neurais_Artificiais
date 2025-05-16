@@ -1,11 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import sys
 
-# ===============================
-# FUNÇÃO DE NORMALIZAÇÃO DOS DADOS
-# ===============================
+
 def normalize_data(X, y):
     """Normaliza os dados:
          X_norm = (X - média) / desvio-padrão
@@ -21,9 +18,7 @@ def normalize_data(X, y):
 
     return X_norm, y_norm
 
-# ===============================
-# 1. IMPLEMENTAÇÃO DO ADALINE
-# ===============================
+
 class Adaline:
     def __init__(self, eta=0.01, max_epochs=100, epsilon=1e-4, random_state=1):
         """
@@ -55,7 +50,7 @@ class Adaline:
            interrompe se o ΔEQM ≤ ε ou ao atingir max_epochs.
         """
         N = X.shape[0]
-        X_bias = np.hstack((np.ones((N, 1)), X))  # adiciona bias
+        X_bias = np.hstack((np.ones((N, 1)), X))  
 
         self.weights = np.zeros(X_bias.shape[1])
         epoch = 0
@@ -78,9 +73,7 @@ class Adaline:
         X_bias = np.hstack((np.ones((N, 1)), X))
         return np.dot(X_bias, self.weights)
 
-# ===============================
-# 2. IMPLEMENTAÇÃO DO MLP (DO ZERO)
-# ===============================
+
 class SimpleMLP:
     def __init__(self, input_dim, hidden_layers, output_dim=1,
                  eta=0.05, max_epochs=200, epsilon=1e-4,
@@ -111,14 +104,14 @@ class SimpleMLP:
            incluindo os bias, conforme as dimensões definidas.
         """
         rng = np.random.RandomState(self.random_state)
-        # Primeira camada (entrada + bias)
+        
         W0 = rng.uniform(-0.5, 0.5, (self.hidden_layers[0], self.input_dim + 1))
         self.weights.append(W0)
-        # Camadas ocultas (se houver mais que uma)
+       
         for i in range(1, len(self.hidden_layers)):
             Wi = rng.uniform(-0.5, 0.5, (self.hidden_layers[i], self.hidden_layers[i-1] + 1))
             self.weights.append(Wi)
-        # Camada de saída
+     
         if len(self.hidden_layers) > 0:
             input_to_output = self.hidden_layers[-1] + 1
         else:
@@ -184,7 +177,7 @@ class SimpleMLP:
         
         for j in range(L-1, -1, -1):
             W_next = self.weights[j+1]
-            Wb = W_next[:, 1:]  # descarta o bias
+            Wb = W_next[:, 1:] 
             deriv_current = self.activation_derivative(self.i_list[j], j)
             delta[j] = deriv_current * np.dot(Wb.T, delta[j+1])
         
@@ -226,9 +219,7 @@ class SimpleMLP:
             outputs.append(self.forward(x_sample))
         return np.array(outputs)
 
-# ===============================
-# 3. FUNÇÕES AUXILIARES
-# ===============================
+
 def load_data(filepath):
     """Lê o arquivo de dados e organiza as variáveis:
            X: velocidade do vento (vetor coluna)
@@ -273,14 +264,14 @@ def monte_carlo_simulation(X, y, R=250):
         X_train, X_test = X[train_idx], X[test_idx]
         y_train, y_test = y[train_idx], y[test_idx]
         
-        # ADALINE otimizado
+        
         adaline = Adaline(eta=0.01, max_epochs=100, epsilon=1e-4, random_state=r)
         adaline.fit(X_train, y_train)
         y_pred_adaline = adaline.predict(X_test)
         mse_adaline = compute_mse(y_test, y_pred_adaline)
         mse_adaline_list.append(mse_adaline)
         
-        # MLP otimizado
+        
         mlp = SimpleMLP(input_dim=1, hidden_layers=[10], output_dim=1,
                         eta=0.05, max_epochs=200, epsilon=1e-4,
                         activation_name="tanh", random_state=r)
@@ -290,9 +281,7 @@ def monte_carlo_simulation(X, y, R=250):
         mse_mlp_list.append(mse_mlp)
         
         progress = ((r + 1) / R) * 100.0
-        sys.stdout.write(f"\rProgresso Monte Carlo: {progress:5.1f}%")
-        sys.stdout.flush()
-    sys.stdout.write("\n")
+     
     return mse_adaline_list, mse_mlp_list
 
 def print_statistics(mse_list):
@@ -319,20 +308,18 @@ def plot_learning_curve(curve_data, labels, title):
     plt.grid(True)
     plt.show()
 
-# ===============================
-# 4. FUNÇÃO PRINCIPAL (MAIN)
-# ===============================
+
 def main():
     filepath = r"dados/aerogerador.dat"
     X, y = load_data(filepath)
     
-    # Normalização dos dados
+   
     X_norm, y_norm = normalize_data(X, y)
     
-    # Exibe o gráfico de dispersão
+    
     initial_scatter_plot(X_norm, y_norm)
     
-    # Executa a simulação Monte Carlo (R = 250)
+    
     R = 250
     mse_adaline_list, mse_mlp_list = monte_carlo_simulation(X_norm, y_norm, R=R)
     
@@ -352,27 +339,19 @@ def main():
                                                               mlp_stats[2],
                                                               mlp_stats[3]))
     
-    # ----------------------------------------------------------------
-    # Demonstração de Underfitting e Overfitting na MLP
-    # ----------------------------------------------------------------
-    # Para análise, vamos definir duas topologias:
-    # (a) MLP Subdimensionado: 1 camada oculta com 1 neurônio – tendência a underfitting.
-    # (b) MLP Superdimensionado: 2 camadas ocultas com 50 neurônios cada – tendência a overfitting.
-    
-    # Obtemos uma divisão fixa (random_state=42)
+
     np.random.seed(42)
     indices = np.random.permutation(X_norm.shape[0])
     split = int(0.8 * X_norm.shape[0])
     train_idx = indices[:split]
     X_train, y_train = X_norm[train_idx], y_norm[train_idx]
     
-    # MLP subdimensionado
+
     mlp_sub = SimpleMLP(input_dim=1, hidden_layers=[1], output_dim=1,
                         eta=0.05, max_epochs=200, epsilon=1e-4,
                         activation_name="tanh", random_state=42)
     mlp_sub.train(X_train, y_train)
-    
-    # MLP superdimensionado
+
     mlp_super = SimpleMLP(input_dim=1, hidden_layers=[50, 50], output_dim=1,
                           eta=0.05, max_epochs=200, epsilon=1e-4,
                           activation_name="tanh", random_state=42)

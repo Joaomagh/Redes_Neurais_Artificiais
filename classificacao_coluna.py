@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import sys
+
 
 def load_data(filepath):
     data = np.genfromtxt(filepath, delimiter=",", dtype="U20", encoding="utf-8")
@@ -239,9 +239,6 @@ def monte_carlo_classification(X, Y, R=100):
         if acc_m < worst_mlp["acc"]:
             worst_mlp.update(acc=acc_m, cm=cm_m, curve=mlp.loss_curve.copy())
 
-        sys.stdout.write(f"\rProgresso Monte Carlo: {100*(r+1)/R:5.1f}%")
-        sys.stdout.flush()
-    sys.stdout.write("\n")
     return metrics_adaline, metrics_mlp, best_adaline, worst_adaline, best_mlp, worst_mlp
 
 def print_summary(name, mets):
